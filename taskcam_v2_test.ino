@@ -1,23 +1,16 @@
-/*
-  Software serial multple serial test
-  Receives from the hardware serial, sends to software serial.
-  Receives from software serial, sends to hardware serial.
-  The circuit:
-   RX is digital pin 10 (connect to TX of other device)
-   TX is digital pin 11 (connect to RX of other device)
-  Note:
-  Not all pins on the Mega and Mega 2560 support change interrupts,
-  so only the following can be used for RX:
-  10, 11, 12, 13, 50, 51, 52, 53, 62, 63, 64, 65, 66, 67, 68, 69
-  Not all pins on the Leonardo support change interrupts,
-  so only the following can be used for RX:
-  8, 9, 10, 11, 14 (MISO), 15 (SCK), 16 (MOSI).
-  created back in the mists of time
-  modified 25 May 2012
-  by Tom Igoe
-  based on Mikal Hart's example
-  This example code is in the public domain.
-*/
+/* Taskcam v2 software for IRS Taskcam v2 Camera Shield + IRS Taskcam Camera Module */
+/* Written by Andy Sheen 2017 */
+
+/*~~~~~~~~~~TO DO~~~~~~~~~~*/
+/* - Add Button and switch names
+ * - Add power down function
+ * - Add animation to text 
+ * - Add question display
+ * - Add photo capture animation
+ * - Remove Adafruit splash (sorry Lady Ada...) 
+ * - Add Photo hash tally 
+ * - Add Contrast/Light/FX menu (bonus)
+ */
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -28,51 +21,37 @@
 Adafruit_SSD1306 display(OLED_RESET);
 
 char* inputBuffer;
-
 bool flag = false;
-
 SoftwareSerial mySerial(3, 2); // RX, TX
 
 void setup() {
 
+  //PWR Pin
   pinMode(10, OUTPUT);
   digitalWrite(10, 1);
+
   pinMode(5, OUTPUT);
   digitalWrite(5, 1);
-  //Serial.begin(9600);
+
+
+  //Buttons
   pinMode(7, INPUT_PULLUP);
   pinMode(8, INPUT_PULLUP);
   pinMode(9, INPUT_PULLUP);
   pinMode(6, INPUT_PULLUP);
 
-  // Open serial communications and wait for port to open:
-  pinMode(5, OUTPUT);
-  digitalWrite(5, 1);;
   Serial.begin(57600);
   while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-
-
-
   }
-
-
-
-  // set the data rate for the SoftwareSerial port
+  //Camera Module Interface
   mySerial.begin(38400);
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);  // initialize with the I2C addr 0x3D (for the 128x64)
-  // init done
-
-  // Show image buffer on the display hardware.
-  // Since the buffer is intialized with an Adafruit splashscreen
-  // internally, this will display the splashscreen.
   display.display();
   delay(2000);
-
-  // Clear the buffer.
   display.clearDisplay();
 
+  //Init CAM
   mySerial.write('~');
   mySerial.write('i');
   mySerial.write(0x0D);
@@ -81,53 +60,48 @@ void setup() {
     //WAIT
     delay(1);
   }
+  //Wait for 'INI'
   for (int i = 0 ; i < 3; i++) {
     Serial.print((char)mySerial.read());
   }
   Serial.println();
 
+  //Index Questions
   mySerial.write('~');
   mySerial.write('+');
   mySerial.write(0x0D);
   mySerial.write(0x0A);
   while (mySerial.available() < 2) {
-    //WAIT
-    delay(1000);
+    delay(1);
   }
+  //Returns number of Qs + new line
   for (int i = 0 ; i < 3; i++) {
     Serial.print(mySerial.read());
   }
   Serial.println();
   delay(100);
+
+  // q + question num return Qs
   mySerial.write('q');
   mySerial.write(0x04);
   mySerial.write(0x0D);
   mySerial.write(0x0A);
 
-
+  //prints out the Question.... TO FIX
   while (mySerial.available() < 63) {
   }
   inputBuffer = new char[64];
-  for(int i = 0; i < 64; i++){
+  for (int i = 0; i < 64; i++) {
     inputBuffer[i] = (char)mySerial.read();
   }
   Serial.println(inputBuffer);
- for(int i = 0 ; i < 100; i++){
-  mySerial.read();
- }
+  for (int i = 0 ; i < 100; i++) {
+    mySerial.read();
+  }
 }
 
 void loop() { // run over and over
 
-
-  /*
-    if (mySerial.available()) {
-      Serial.write(mySerial.read());
-    }
-    if (Serial.available()) {
-      mySerial.write(Serial.read());
-    }
-  */
   display.clearDisplay();
   display.setTextSize(1);
   display.setTextColor(WHITE);
@@ -153,6 +127,7 @@ void loop() { // run over and over
     display.display();
 
     flag = true;
+    //Take picture
     mySerial.write('~');
     mySerial.write('!');
     mySerial.write(0x0D);
@@ -160,7 +135,7 @@ void loop() { // run over and over
     while (mySerial.available() < 0) {
       delay(1);
     }
-   
+    //Ack for when picture finished saving... needs fixing as hang over from oversized Q in buffer
     if (mySerial.read() == 0x06) {
       display.clearDisplay();
       display.setTextSize(2);
